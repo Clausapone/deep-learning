@@ -1,25 +1,42 @@
 import networkx as nx
-import matplotlib.pyplot as plt
+from ToEmbedding import create_embedding  #,create_hot_encoding
+import torch
 import numpy as np
-from ToEmbedding import CreateEmbedding
 
-# percorso del nostro database
-file_path = './my_dataset.gml'
 
-# Creazione del grafo leggendo il file .gml del database
-G = nx.read_gml(file_path, label='id')
+# Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), adj_matrix
+def data(path):
+    # Creazione del grafo leggendo il file .gml del database
+    G = nx.read_gml(path, label='id')
 
-# Creazione grafo diretto
-DG = nx.DiGraph(G)
+    # Creazione grafo diretto
+    DG = nx.DiGraph(G)
 
-# Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
-links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
+    # Matrice di adiacenza come array numpy
+    adj_matrix = nx.adjacency_matrix(DG).todense()
+    adj_matrix = torch.tensor(adj_matrix)
 
-to_embedd = CreateEmbedding()
-embeddings = [to_embedd.Embedding(i) for i in links[:2]]
-print(embeddings)
+    # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
+    links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
 
-# Matrice di adiacenza come array numpy
-adj_matrix = nx.adjacency_matrix(DG).todense()
+    links_embeddings = torch.empty((0, 384))
+    for l in links:
+        links_embeddings = torch.cat((links_embeddings, create_embedding(l)), dim=0)
 
+    # Estrazione e manipolazione dei blogs
+    blogs_encoding = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]])     # al posto di questo avremo il codice sottostante
+    """
+        # One-hot encoding dei blogs
+        blogs = [DG.nodes.data()[id]['source'] for id in DG.nodes]
+        blogs_encoding = [create_hot_encoding(b) for b in blogs]
+    """
+
+    # Estrazione della colonna degli outcomes
+    values = [DG.nodes.data()[id]['value'] for id in DG.nodes]
+    Y = torch.tensor(values)
+
+    # Creazione tensore X (con i dati per il training)
+    X = torch.cat((links_embeddings, blogs_encoding), dim=1)
+
+    return X, Y, adj_matrix
 
