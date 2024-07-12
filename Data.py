@@ -1,7 +1,6 @@
 import networkx as nx
 from ToEmbedding import create_embedding  #,create_hot_encoding
 import torch
-import numpy as np
 
 
 # Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), adj_matrix
@@ -19,12 +18,12 @@ def data(path):
     # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
     links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
 
-    links_embeddings = torch.empty((0, 384))
+    links_embeddings = torch.tensor([])
     for l in links:
         links_embeddings = torch.cat((links_embeddings, create_embedding(l)), dim=0)
 
     # Estrazione e manipolazione dei blogs
-    blogs_encoding = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]])     # al posto di questo avremo il codice sottostante
+    blogs_encoding = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])     # al posto di questo avremo il codice sottostante
     """
         # One-hot encoding dei blogs
         blogs = [DG.nodes.data()[id]['source'] for id in DG.nodes]
@@ -39,4 +38,3 @@ def data(path):
     X = torch.cat((links_embeddings, blogs_encoding), dim=1)
 
     return X, Y, adj_matrix
-
