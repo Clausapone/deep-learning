@@ -1,10 +1,10 @@
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
-def test(model, X, Y, adj_matrix, criterion):
+def test(model, X, Y, edge_index, criterion):
     model.eval()
     with torch.no_grad():
-        preds = model(X, adj_matrix)
+        preds = model(X, edge_index)
         loss = criterion(preds, Y)
 
     acc = accuracy_score(preds.numpy(), Y.numpy())

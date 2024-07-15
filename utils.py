@@ -4,18 +4,16 @@ from bs4 import BeautifulSoup
 from transformers import AutoTokenizer, AutoModel
 import torch
 import numpy as np
+from torch_geometric.utils import from_networkx
 
 
-# Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), adj_matrix
+# Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), edge_index
 def load_data(path):
     # Creazione del grafo leggendo il file .gml del database
     G = nx.read_gml(path, label='id')
 
     # Creazione grafo diretto
     DG = nx.MultiDiGraph(G)
-
-    # Matrice di adiacenza come array numpy
-    adj_matrix = nx.adjacency_matrix(DG).todense()
 
     # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
     links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
@@ -37,7 +35,11 @@ def load_data(path):
     # Estrazione della colonna degli outcomes
     Y = np.array([DG.nodes.data()[id]['value'] for id in DG.nodes])
 
-    return X, Y, adj_matrix
+    # Matrice degli indici di adiacenza come tensore
+    data = from_networkx(DG)
+    edge_index = data.edge_index
+
+    return X, Y, edge_index
 
 
 # Funzione che crei l'embedding del contenuto di un sito web, dato l'url

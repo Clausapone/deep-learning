@@ -1,7 +1,7 @@
-def train(model, X, Y, adj_matrix, optimizer, criterion, epochs):
+def train(model, X, Y, edge_index, optimizer, criterion, epochs):
     for epoch in range(epochs):
         model.train()
-        preds = model(X, adj_matrix)
+        preds = model(X, edge_index)
         loss = criterion(preds, Y)
         optimizer.zero_grad()
         loss.backward()

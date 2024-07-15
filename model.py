@@ -22,20 +22,20 @@ class GCN(torch.nn.Module):
         self.relu = ReLU()                                              # ReLU (VALUTARE: altre activation functions)
 
 
-    def forward(self, X, adj_matrix):
-        X = self.conv1(X, adj_matrix)
+    def forward(self, X, edge_index):
+        X = self.conv1(X, edge_index)
         X = self.relu(X)
 
         X = F.dropout(X, p=0.2, training=self.training)     # dropout (possiamo valutare altri valori di p)
-        X = self.conv2(X, adj_matrix)
+        X = self.conv2(X, edge_index)
         X = self.relu(X)
 
         X = F.dropout(X, p=0.2, training=self.training)
-        X = self.conv3(X, adj_matrix)
+        X = self.conv3(X, edge_index)
         X = self.relu(X)
 
         X = self.linear(X)
-        X = self.sigmoid(X)
+        X = self.sigmoid(X).squeeze(1)
 
         return X
 
