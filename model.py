@@ -9,7 +9,8 @@ class GCN(torch.nn.Module):
         super(GCN, self).__init__()
 
         # nella GCN la convoluzione è il meccanismo usato per implementare il message passing.
-        #(VALUTARE: ChebConv | numero di conv layers da usare | dimensione hidd. layers)
+        # (VALUTARE: ChebConv | numero di conv layers da usare | dimensione hidd. layers)
+        # self.conv = ChebConv(input_dim, hidden_dim, K=3, normalization="sym")
 
         hidden_dim = 64     # (VALUTARE: 128, 32)
 
@@ -21,20 +22,20 @@ class GCN(torch.nn.Module):
         self.relu = ReLU()                                              # ReLU (VALUTARE: altre activation functions)
 
 
-    def forward(self, x, adj_matrix):
-        x = self.conv1(x, adj_matrix)
-        x = self.relu(x)
+    def forward(self, X, adj_matrix):
+        X = self.conv1(X, adj_matrix)
+        X = self.relu(X)
 
-        x = F.dropout(x, p=0.2, training=self.training)     # dropout (possiamo valutare altri valori di p)
-        x = self.conv2(x, adj_matrix)
-        x = self.relu(x)
+        X = F.dropout(X, p=0.2, training=self.training)     # dropout (possiamo valutare altri valori di p)
+        X = self.conv2(X, adj_matrix)
+        X = self.relu(X)
 
-        x = F.dropout(x, p=0.2, training=self.training)
-        x = self.conv3(x, adj_matrix)
-        x = self.relu(x)
+        X = F.dropout(X, p=0.2, training=self.training)
+        X = self.conv3(X, adj_matrix)
+        X = self.relu(X)
 
-        x = self.linear(x)
-        x = self.sigmoid(x)
+        X = self.linear(X)
+        X = self.sigmoid(X)
 
-        return x
+        return X
 

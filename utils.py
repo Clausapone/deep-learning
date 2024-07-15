@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from transformers import AutoTokenizer, AutoModel
 import torch
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
 
 # Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), adj_matrix
@@ -17,7 +16,6 @@ def load_data(path):
 
     # Matrice di adiacenza come array numpy
     adj_matrix = nx.adjacency_matrix(DG).todense()
-    adj_matrix = torch.tensor(adj_matrix)
 
     # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
     links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
@@ -26,7 +24,7 @@ def load_data(path):
     links_embeddings = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
 
     # Estrazione e manipolazione dei blogs
-    blogs_encoding = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],  [1.0, 1.0, 0.0],  [0.0, 1.0, 1.0],  [0.0, 0.0, 1.0],  [0.0, 1.0, 0.0]])    # al posto di questo avremo il codice sottostante
+    blogs_encoding = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0],  [1, 1, 0],  [0, 1, 1],  [0, 0, 1],  [0, 1, 0]])    # al posto di questo avremo il codice sottostante
     """
         # One-hot encoding dei blogs
         blogs = [DG.nodes.data()[id]['source'] for id in DG.nodes]
@@ -69,7 +67,7 @@ def create_embedding(url):
 
     # Rappresentazione compatta dell'embedding
     embeddings = outputs.last_hidden_state.mean(dim=1)
-    embeddings = np.array(embeddings[0])
+    embeddings = np.array(embeddings)
 
     return embeddings
 
