@@ -48,6 +48,10 @@ graph [
         target 33
     ]
     edge [
+        source 3
+        target 33
+    ]
+    edge [
         source 33
         target 68
     ]
@@ -57,11 +61,19 @@ graph [
     ]
     edge [
         source 68
+        target 3
+    ]
+    edge [
+        source 68
         target 307
     ]
     edge [
         source 33
         target 1026
+    ]
+    edge [
+        source 1026
+        target 1031
     ]
     edge [
         source 1026

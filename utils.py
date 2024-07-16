@@ -7,13 +7,30 @@ import numpy as np
 from torch_geometric.utils import from_networkx
 
 
-# Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training), Y (colonna outcomes), edge_index
+# Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training),
+# Y (colonna outcomes), edge_index (adj_matrix compatta) e edge weight (cardinalità dei pesi)
 def load_data(path):
     # Creazione del grafo leggendo il file .gml del database
-    G = nx.read_gml(path, label='id')
+    Dataset = nx.read_gml(path, label='id')
 
-    # Creazione grafo diretto
-    DG = nx.MultiDiGraph(G)
+    # Creazione del grafo di tipo MultiDiGraph  per la presenza di archi duplicati
+    MG = nx.MultiDiGraph(Dataset)
+
+    # Trasformazione del MultiGraph in un semplice DiGraph, ma senza duplicati (con un peso per ogni edge)
+    DG = nx.DiGraph()
+
+    for node, data in MG.nodes(data=True):  # carico i nodi
+        url = "https://" + data['label']
+        if identify_broken_links(url):        # aggiungo il nodo solo se il link funziona
+            DG.add_node(node, **data)
+
+    for source, target, data in MG.edges(data=True):   # carico gli edges
+        if DG.has_edge(source, target):     # aumento il peso dell'arco se già presente
+            DG[source][target]['weight'] += 1
+        elif DG.has_node(source) and DG.has_node(target):   # creo l'arco se non presente ma solo se i nodi source e target esistono nel DG (potrebbero non esistere poichè eliminiamo i link non funzionanti)
+            DG.add_edge(source, target, weight=1)
+
+    edge_weight = torch.tensor([DG[source][target]['weight'] for source, target in DG.edges], dtype=torch.float)
 
     # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
     links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
@@ -29,7 +46,7 @@ def load_data(path):
     data = from_networkx(DG)
     edge_index = data.edge_index
 
-    return X, Y, edge_index
+    return X, Y, edge_index, edge_weight
 
 
 # Funzione che crei l'embedding del contenuto di un sito web, dato l'url
@@ -62,3 +79,16 @@ def create_embedding(url):
     embeddings = np.array(embeddings)
 
     return embeddings
+
+def identify_broken_links(url):
+    if check_url(url):
+        return True
+    else:
+        return False
+
+def check_url(url):
+    try:
+        response = requests.head(url, timeout=5)
+        return response.status_code < 400
+    except requests.RequestException:
+        return False

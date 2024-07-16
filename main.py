@@ -9,9 +9,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, KFold
 import numpy as np
 
-# Funzione per ottenere le strutture dati per il training, dando in input il percorso del nostro database
+# Lettura caricamento dei dati dal Dataset
 file_path = 'toy_dataset.gml'
-X, Y, edge_index = load_data(file_path)
+X, Y, edge_index, edge_weight = load_data(file_path)
 
 # Train and test split
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
@@ -27,14 +27,11 @@ criterion = BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)     # (VALUTARE: SGD, RMSProp, Adagrad,...)
 
 
-
-"""
-----------------------------------------------------------------------------------------
 # Training (prova senza CV)
 X = torch.tensor(X, dtype=torch.float)
 Y = torch.tensor(Y, dtype=torch.float)
-loss, preds = train(model, X, Y, edge_index, optimizer, criterion, 1000)"""
-
+loss, preds = train(model, X, Y, edge_index, edge_weight, optimizer, criterion, 1000)
+print(loss, preds)
 
 """
 ----------------------------------------------------------------------------------------
