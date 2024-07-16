@@ -18,19 +18,9 @@ def load_data(path):
     # Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
     links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
 
+    # Creazione matrice degli input X
     links_embeddings = np.array([])
-    links_embeddings = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
-
-    # Estrazione e manipolazione dei blogs
-    blogs_encoding = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0],  [1, 1, 0],  [0, 1, 1],  [0, 0, 1],  [0, 1, 0]])    # al posto di questo avremo il codice sottostante
-    """
-        # One-hot encoding dei blogs
-        blogs = [DG.nodes.data()[id]['source'] for id in DG.nodes]
-        blogs_encoding = [create_hot_encoding(b) for b in blogs]
-    """
-
-    # Creazione tensore X (dati per il training)
-    X = np.hstack((links_embeddings, blogs_encoding))
+    X = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
 
     # Estrazione della colonna degli outcomes
     Y = np.array([DG.nodes.data()[id]['value'] for id in DG.nodes])
@@ -72,12 +62,3 @@ def create_embedding(url):
     embeddings = np.array(embeddings)
 
     return embeddings
-
-
-"""
-# Funzione che codifichi un blog con one-hot encoding
-def create_hot_encoding(blogs):
-
-
-    return encoded_blogs
-"""
