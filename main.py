@@ -14,7 +14,15 @@ file_path = 'toy_dataset.gml'
 X, Y, edge_index, edge_weight = load_data(file_path)
 
 # Train and test split
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+train_mask, test_mask = train_test_split(np.arange(X.shape[0]), test_size=0.2, random_state=42, shuffle=True)
+X_train, X_test = X[train_mask], X[test_mask]
+Y_train, Y_test = Y[train_mask], Y[test_mask]
+
+edge_index_train = edge_index[:, train_mask]
+edge_index_test = edge_index[:, test_mask]
+edge_weight_train = edge_weight[train_mask]
+edge_weight_test = edge_weight[test_mask]
 
 # Normalizzazione
 scaler = StandardScaler()
@@ -28,9 +36,9 @@ optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)     # (V
 
 
 # Training (prova senza CV)
-X = torch.tensor(X, dtype=torch.float)
-Y = torch.tensor(Y, dtype=torch.float)
-loss, preds = train(model, X, Y, edge_index, edge_weight, optimizer, criterion, 1000)
+X_train = torch.tensor(X_train, dtype=torch.float)
+Y_train = torch.tensor(Y_train, dtype=torch.float)
+loss, preds = train(model, X_train, Y_train, edge_index_train, edge_weight_train, optimizer, criterion, 1000)
 print(loss, preds)
 
 """

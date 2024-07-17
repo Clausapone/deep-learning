@@ -1,10 +1,12 @@
 import networkx as nx
 import requests
 from bs4 import BeautifulSoup
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, T5Tokenizer, T5ForConditionalGeneration
+import sentencepiece
 import torch
 import numpy as np
 from torch_geometric.utils import from_networkx
+
 
 
 # Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training),
@@ -21,7 +23,7 @@ def load_data(path):
 
     for node, data in MG.nodes(data=True):  # carico i nodi
         url = "https://" + data['label']
-        if identify_broken_links(url):        # aggiungo il nodo solo se il link funziona
+        if suitable_url(url):        # aggiungo il nodo solo se il link funziona
             DG.add_node(node, **data)
 
     for source, target, data in MG.edges(data=True):   # carico gli edges
@@ -62,13 +64,27 @@ def create_embedding(url):
     texts = soup.stripped_strings   # eliminare elementi di formattazione che non fanno parte del testo
     text_content = " ".join(texts)  # introdurre gli spazi tra le parole
 
+    # Summarization
+    model_name = "t5-base"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+
+    input_ids = tokenizer.encode(text_content, return_tensors="pt", max_length=3000, truncation=True)
+
+    # Genera il riassunto
+    summary_ids = model.generate(input_ids, max_length=512, min_length=500, length_penalty=2.0, num_beams=4,
+                                 early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    print(summary)
+
+
     # Istanziare il modello di embedding di Hugging Face
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
 
     # Tokenizzare il testo
-    inputs = tokenizer(text_content, return_tensors='pt', truncation=True, padding=True, max_length=512)
+    inputs = tokenizer(summary, return_tensors='pt', truncation=True, padding=True, max_length=512)
 
     # Ottenere l'embedding esteso
     with torch.no_grad():
@@ -80,15 +96,11 @@ def create_embedding(url):
 
     return embeddings
 
-def identify_broken_links(url):
-    if check_url(url):
-        return True
-    else:
-        return False
 
-def check_url(url):
+# Funzione che identifichi gli url idonei in base allo status code e ad un timeout
+def suitable_url(url):
     try:
-        response = requests.head(url, timeout=5)
-        return response.status_code < 400
+        response = requests.head(url, timeout=3)
+        return response.status_code < 300
     except requests.RequestException:
         return False
