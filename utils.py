@@ -1,12 +1,10 @@
 import networkx as nx
 import requests
 from bs4 import BeautifulSoup
-from transformers import AutoTokenizer, AutoModel, T5Tokenizer, T5ForConditionalGeneration
-import sentencepiece
+from transformers import AutoTokenizer, AutoModel, BartTokenizer, BartForConditionalGeneration, pipeline
 import torch
 import numpy as np
 from torch_geometric.utils import from_networkx
-
 
 
 # Funzione che legga il file .gml, costruisca il grafo, e restituisca: X (tensore per il training),
@@ -23,13 +21,14 @@ def load_data(path):
 
     for node, data in MG.nodes(data=True):  # carico i nodi
         url = "https://" + data['label']
-        if suitable_url(url):        # aggiungo il nodo solo se il link funziona
+        if suitable_url(url):  # aggiungo il nodo solo se il link funziona
             DG.add_node(node, **data)
 
-    for source, target, data in MG.edges(data=True):   # carico gli edges
-        if DG.has_edge(source, target):     # aumento il peso dell'arco se già presente
+    for source, target, data in MG.edges(data=True):  # carico gli edges
+        if DG.has_edge(source, target):  # aumento il peso dell'arco se già presente
             DG[source][target]['weight'] += 1
-        elif DG.has_node(source) and DG.has_node(target):   # creo l'arco se non presente ma solo se i nodi source e target esistono nel DG (potrebbero non esistere poichè eliminiamo i link non funzionanti)
+        elif DG.has_node(source) and DG.has_node(
+                target):  # creo l'arco se non presente ma solo se i nodi source e target esistono nel DG (potrebbero non esistere poichè eliminiamo i link non funzionanti)
             DG.add_edge(source, target, weight=1)
 
     edge_weight = torch.tensor([DG[source][target]['weight'] for source, target in DG.edges], dtype=torch.float)
@@ -53,48 +52,50 @@ def load_data(path):
 
 # Funzione che crei l'embedding del contenuto di un sito web, dato l'url
 def create_embedding(url):
-
     # Scaricare il contenuto del sito web usando l'url fronito
     url = "https://" + url
-    response = requests.get(url)    # richiesta HTTP per ottenere informazioni sul sito web
-    web_content = response.content      # ricavare il contenuto del sito web
+    response = requests.get(url)  # richiesta HTTP per ottenere informazioni sul sito web
+    web_content = response.content  # ricavare il contenuto del sito web
 
     # Estrarre il testo rilevante dal contenuto HTML tramite parsing
     soup = BeautifulSoup(web_content, "html.parser")
-    texts = soup.stripped_strings   # eliminare elementi di formattazione che non fanno parte del testo
+    texts = soup.stripped_strings  # eliminare elementi di formattazione che non fanno parte del testo
     text_content = " ".join(texts)  # introdurre gli spazi tra le parole
 
-    # Summarization
-    model_name = "t5-base"
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    # WEB CONTENT --> RIASSUNTO
 
-    input_ids = tokenizer.encode(text_content, return_tensors="pt", max_length=3000, truncation=True)
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
-    # Genera il riassunto
-    summary_ids = model.generate(input_ids, max_length=512, min_length=500, length_penalty=2.0, num_beams=4,
-                                 early_stopping=True)
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    # divisione in chunks
+    chunks_length = 3500
+    chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)]
+
+    # riassunti dei chunks
+    chunk_summaries = [summarizer(chunks[i], max_length=250, min_length=150, do_sample=False)[0]['summary_text'] for i in range(len(chunks)) ]
+    print(chunk_summaries)
+
+    # riassunto totale dei chunks
+    total_chunks_summary = []
+    total_chunks_summary = " ".join(chunk_summaries)
+    summary = summarizer(total_chunks_summary, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
     print(summary)
 
-
-    # Istanziare il modello di embedding di Hugging Face
+    # RIASSUNTO --> LARGE EMBEDDING
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
 
-    # Tokenizzare il testo
     inputs = tokenizer(summary, return_tensors='pt', truncation=True, padding=True, max_length=512)
 
-    # Ottenere l'embedding esteso
     with torch.no_grad():
         outputs = model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'])
 
-    # Rappresentazione compatta dell'embedding
-    embeddings = outputs.last_hidden_state.mean(dim=1)
-    embeddings = np.array(embeddings)
+    embedding = outputs.last_hidden_state.mean(dim=1)
+    embedding = np.array(embedding)
 
-    return embeddings
+    # LARGE EMBEDDING --> FINAL SHORT EMBEDDING
+
+    return embedding
 
 
 # Funzione che identifichi gli url idonei in base allo status code e ad un timeout
