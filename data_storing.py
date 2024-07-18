@@ -76,7 +76,7 @@ def create_embedding(url):
 #-----------------------------------------------------------------------------------------------------
 
 # Creazione del grafo leggendo il file .gml del database
-Dataset = nx.read_gml('toy_dataset.gml', label='id')
+Dataset = nx.read_gml('toy_dataset_7.gml', label='id')
 
 # Creazione del grafo di tipo MultiDiGraph  per la presenza di archi duplicati
 MG = nx.MultiDiGraph(Dataset)

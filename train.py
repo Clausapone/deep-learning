@@ -6,3 +6,5 @@ def train(model, X, Y, edge_index, edge_weight, optimizer, criterion, epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+    return loss, preds
