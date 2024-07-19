@@ -42,7 +42,7 @@ def create_embedding(url):
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
     # divisione in chunks
-    chunks_length = 3500
+    chunks_length = 3000
     chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)]
 
     # riassunti dei chunks
@@ -72,11 +72,11 @@ def create_embedding(url):
     return embedding
 
 
-# BODY
+# DATA STORING
 #-----------------------------------------------------------------------------------------------------
 
 # Creazione del grafo leggendo il file .gml del database
-Dataset = nx.read_gml('toy_dataset_7.gml', label='id')
+Dataset = nx.read_gml('toy_dataset_26.gml', label='id')
 
 # Creazione del grafo di tipo MultiDiGraph  per la presenza di archi duplicati
 MG = nx.MultiDiGraph(Dataset)
@@ -119,7 +119,7 @@ links_embeddings = np.array([])
 X = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
 np.save("large_embeddings.npy", X)
 
-pca = PCA(n_components=6)   # AGGIORNARE
+pca = PCA(n_components=20)
 X = pca.fit_transform(X)
 np.save("X.npy", X)
 
