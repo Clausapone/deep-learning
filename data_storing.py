@@ -13,7 +13,7 @@ Modulo che legge il file .gml, costruisce il grafo, e restituisce: X (tensore pe
 Y (colonna outcomes), edge_index (adj_matrix compatta) e edge weight (cardinalità dei pesi)
 """
 
-# UTILS
+# {UTILS}
 #-----------------------------------------------------------------------------------------------------
 
 # Funzione che crei l'embedding del contenuto di un sito web, dato l'url
@@ -28,26 +28,33 @@ def create_embedding(url):
     texts = soup.stripped_strings  # eliminare elementi di formattazione che non fanno parte del testo
     text_content = " ".join(texts)  # introdurre gli spazi tra le parole
 
+    # ------------------------------------
     # WEB CONTENT --> RIASSUNTO
 
+    # Istanziamo il modello summarizer (BART)
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
     # divisione in chunks
     chunks_length = 3000
     chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)]
 
-    # riassunti dei chunks
+    # array con i riassunti dei chunks
     chunks_summaries = [chunk_error_handler(chunks[i], summarizer) for i in range(len(chunks))]
 
-    # riassunto totale dei chunks
+    # riassunto totale dei riassunti dei chunks (se la somma dei riassunti dei chunks supera 3000, viene troncata)
     total_chunks_summary = " ".join(chunks_summaries)
-    if len(total_chunks_summary) < chunks_length:
+    # [gestiamo anche il caso in cui il testo sia troppo piccolo (meno di 1200 caratteri) e in cui sia troppo grande]
+    if len(total_chunks_summary) > 1200 and len(total_chunks_summary) < chunks_length:
         summary = summarizer(total_chunks_summary, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
-    else:
+    elif len(total_chunks_summary) > chunks_length:
         total_chunks_truncated = total_chunks_summary[:chunks_length]
-        summary = summarizer(total_chunks_truncated,  max_length=250, min_length=150, do_sample=False)[0]['summary_text']
+        summary = summarizer(total_chunks_truncated, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
+    else:
+        summary = total_chunks_summary
 
+    # ------------------------------------
     # RIASSUNTO --> LARGE EMBEDDING
+
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
@@ -62,7 +69,7 @@ def create_embedding(url):
 
     return embedding
 
-#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------
 # Funzione che identifichi gli url idonei in base allo status code e ad un timeout
 def suitable_url(url):
     try:
@@ -71,19 +78,22 @@ def suitable_url(url):
     except requests.RequestException:
         return False
 
-#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------
 # (per via di contenuti ambigui, alcuni chunks producono degli Index Errors)
-# Funzione che gestisca gli errori all'interno dei chunks:
+# Funzione che esegue i riassunti di ogni chunk, gestendo gli errori all'interno dei chunks:
 
 def chunk_error_handler(chunk, summarizer):
     try:
-        chunk_summary = summarizer(chunk, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
-        return chunk_summary
+        if len(chunk) > 1200:   # se il chunk è abbastanza grande eseguiamo il riassunto (1200 è un numero ragionevole di caratteri)
+            chunk_summary = summarizer(chunk, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
+            return chunk_summary
+        else:   # se non è abbastanza grande lo teniamo invariato
+            return chunk
     except IndexError:
         return " "
 
 
-# DATA STORING
+# {DATA STORING}
 #-----------------------------------------------------------------------------------------------------
 
 # Creazione del grafo leggendo il file .gml del database

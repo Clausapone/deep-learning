@@ -15,7 +15,7 @@ edge_index = torch.load("edge_index.pt")
 edge_weight = torch.load("edge_weight.pt")
 
 
-#--------------------------------------------------------------
+#-----------------------------------------------------
 # Train and test split per X, Y, edge_index, edge_weight
 train_mask, test_mask = train_test_split(np.arange(X.shape[0]), test_size=0.2, random_state=42, shuffle=True)
 
@@ -45,14 +45,14 @@ for old_index, new_index in map_test.items():
     edge_index_test[edge_index_test == old_index] = new_index
 
 
-#--------------------------------------------------------------
+#-----------------------------------------------------
 # NORMALIZZAZIONE
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
 
-#--------------------------------------------------------------
+#-----------------------------------------------------
 # (PROVVISORIO) TRAINING DEL MODELLO
 model = GCN(X_train.shape[1])
 criterion = BCELoss()
@@ -62,9 +62,10 @@ X_train = torch.tensor(X_train, dtype=torch.float)
 Y_train = torch.tensor(Y_train, dtype=torch.float)
 
 train_preds, train_loss = train(model, X_train, Y_train, edge_index_train, edge_weight_train, optimizer, criterion, 1000)
+print(train_preds)
 
-"""
-#--------------------------------------------------------------
+
+#-----------------------------------------------------
 # TESTING DEL MODELLO
 X_test = torch.tensor(X_test, dtype=torch.float)
 Y_test = torch.tensor(Y_test, dtype=torch.float)
@@ -72,10 +73,10 @@ Y_test = torch.tensor(Y_test, dtype=torch.float)
 test_loss, accuracy = test(model, X_test, Y_test, edge_index_test, edge_weight_test, criterion)
 
 print(f"loss: {test_loss}, accuracy: {accuracy}")
-"""
+
 
 """
-#--------------------------------------------------------------
+#-----------------------------------------------------
 # Fase di Cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
