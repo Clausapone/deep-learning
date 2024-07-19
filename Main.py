@@ -19,7 +19,7 @@ edge_weight = torch.load("edge_weight.pt")
 # Train and test split per X, Y, edge_index, edge_weight
 train_mask, test_mask = train_test_split(np.arange(X.shape[0]), test_size=0.2, random_state=42, shuffle=True)
 
-X_train, X_test = X[train_mask], X[test_mask]
+X_train, X_test = X[train_mask, :], X[test_mask, :]
 Y_train, Y_test = Y[train_mask], Y[test_mask]
 
 # Train_test_split per edge_index ed edge weight con maschera binaria
@@ -34,7 +34,7 @@ edge_weight_train = edge_weight[edges_training_mask]
 edge_index_test = edge_index[:, edges_test_mask]
 edge_weight_test = edge_weight[edges_test_mask]
 
-# mapping degli indici: gli indici dei nodi sono cambiati dopo lo split, quindi serve mappare i valori in edge_index a nuovi indici
+# mapping degli indici: gli indici dei nodi sono cambiati dopo lo split, quindi serve mappare i valori in edge_index a nuovi indexes
 map_train = {old_index: new_index for new_index, old_index in enumerate(train_mask)}
 map_test = {old_index: new_index for new_index, old_index in enumerate(test_mask)}
 
@@ -51,9 +51,9 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-#--------------------------------------------------------------
-# TRAINING DEL MODELLO
 
+#--------------------------------------------------------------
+# (PROVVISORIO) TRAINING DEL MODELLO
 model = GCN(X_train.shape[1])
 criterion = BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)     # (VALUTARE: SGD, RMSProp, Adagrad,...)
@@ -61,8 +61,18 @@ optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)     # (V
 X_train = torch.tensor(X_train, dtype=torch.float)
 Y_train = torch.tensor(Y_train, dtype=torch.float)
 
-loss, preds = train(model, X_train, Y_train, edge_index_train, edge_weight_train, optimizer, criterion, 1000)
-print(loss, preds)
+train_preds, train_loss = train(model, X_train, Y_train, edge_index_train, edge_weight_train, optimizer, criterion, 1000)
+
+"""
+#--------------------------------------------------------------
+# TESTING DEL MODELLO
+X_test = torch.tensor(X_test, dtype=torch.float)
+Y_test = torch.tensor(Y_test, dtype=torch.float)
+
+test_loss, accuracy = test(model, X_test, Y_test, edge_index_test, edge_weight_test, criterion)
+
+print(f"loss: {test_loss}, accuracy: {accuracy}")
+"""
 
 """
 #--------------------------------------------------------------
@@ -94,13 +104,5 @@ for fold, (train_mask, val_mask) in enumerate(kf.split(X_train)):
 
 
 score = scores.mean(scores)
-"""
-
-
-"""
-----------------------------------------------------------------------------------------
-# Fase di Test
-
-test(model(best_params), X_test, Y_test)
 """
 

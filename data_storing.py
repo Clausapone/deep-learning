@@ -16,15 +16,6 @@ Y (colonna outcomes), edge_index (adj_matrix compatta) e edge weight (cardinalit
 # UTILS
 #-----------------------------------------------------------------------------------------------------
 
-# Funzione che identifichi gli url idonei in base allo status code e ad un timeout
-def suitable_url(url):
-    try:
-        response = requests.head(url, timeout=3)
-        return response.status_code < 300
-    except requests.RequestException:
-        return False
-
-#-----------------------------------------------------------------------------------------------------
 # Funzione che crei l'embedding del contenuto di un sito web, dato l'url
 def create_embedding(url):
     # Scaricare il contenuto del sito web usando l'url fronito
@@ -46,7 +37,7 @@ def create_embedding(url):
     chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)]
 
     # riassunti dei chunks
-    chunks_summaries = [summarizer(chunks[i], max_length=250, min_length=150, do_sample=False)[0]['summary_text'] for i in range(len(chunks))]
+    chunks_summaries = [chunk_error_handler(chunks[i], summarizer) for i in range(len(chunks))]
 
     # riassunto totale dei chunks
     total_chunks_summary = " ".join(chunks_summaries)
@@ -70,6 +61,26 @@ def create_embedding(url):
     embedding = np.array(embedding)
 
     return embedding
+
+#-----------------------------------------------------------------------------------------------------
+# Funzione che identifichi gli url idonei in base allo status code e ad un timeout
+def suitable_url(url):
+    try:
+        response = requests.head(url, timeout=3)
+        return response.status_code < 300
+    except requests.RequestException:
+        return False
+
+#-----------------------------------------------------------------------------------------------------
+# (per via di contenuti ambigui, alcuni chunks producono degli Index Errors)
+# Funzione che gestisca gli errori all'interno dei chunks:
+
+def chunk_error_handler(chunk, summarizer):
+    try:
+        chunk_summary = summarizer(chunk, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
+        return chunk_summary
+    except IndexError:
+        return " "
 
 
 # DATA STORING
@@ -122,4 +133,5 @@ np.save("large_embeddings.npy", X)
 pca = PCA(n_components=20)
 X = pca.fit_transform(X)
 np.save("X.npy", X)
+
 
