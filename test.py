@@ -1,13 +1,25 @@
 import torch
+from torchmetrics import Accuracy, Precision, Recall
+
 
 def test(model, X, Y, edge_index, edge_weight, criterion):
+    accuracy = Accuracy(task="binary")
+    precision = Precision(task="binary")
+    recall = Recall(task="binary")
+
     model.eval()
     with torch.no_grad():
-        preds = model(X, edge_index, edge_weight)
+        preds = model.forward(X, edge_index, edge_weight)
         loss = criterion(preds, Y)
         preds = torch.round(preds)
-        correct = (preds == Y).sum()
-        accuracy = int(correct) / len(Y)
 
-    return loss, accuracy
+        accuracy(preds, Y)
+        precision(preds, Y)
+        recall(preds, Y)
 
+        # Ottenere il valore delle metriche
+        accuracy = accuracy(preds, Y)
+        precision = precision(preds, Y)
+        recall = recall(preds, Y)
+
+    return loss.item(), accuracy.item(), precision.item(), recall.item()
