@@ -2,7 +2,7 @@ import torch
 from torchmetrics import Accuracy, Precision, Recall
 
 
-def test(model, X, Y, edge_index, edge_weight, criterion):
+def test(model, X, Y, edge_index, edge_weight, mask, criterion):
     accuracy = Accuracy(task="binary")
     precision = Precision(task="binary")
     recall = Recall(task="binary")
@@ -10,7 +10,7 @@ def test(model, X, Y, edge_index, edge_weight, criterion):
     model.eval()
     with torch.no_grad():
         preds = model.forward(X, edge_index, edge_weight)
-        loss = criterion(preds, Y)
+        loss = criterion(preds[mask], Y[mask])
         preds = torch.round(preds)
 
         accuracy(preds, Y)

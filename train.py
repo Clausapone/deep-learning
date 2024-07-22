@@ -1,13 +1,11 @@
-import torch
 
-def train(model, X, Y, edge_index, edge_weight, optimizer, criterion, epochs):
+def train(model, X, Y, edge_index, edge_weight, mask, optimizer, criterion, epochs):
     for epoch in range(epochs):
         model.train()
         preds = model.forward(X, edge_index, edge_weight)
-        loss = criterion(preds, Y)
-        preds = torch.round(preds)
+        loss = criterion(preds[mask], Y[mask])
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-    return preds, loss.item()
+    return loss.item()
