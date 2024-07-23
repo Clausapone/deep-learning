@@ -8,4 +8,3 @@ def train(model, X, Y, edge_index, edge_weight, mask, optimizer, criterion, epoc
         loss.backward()
         optimizer.step()
 
-    return loss.item()

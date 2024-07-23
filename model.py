@@ -7,12 +7,12 @@ import torch.nn.functional as F
 class GCN(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GCN, self).__init__()
-        torch.manual_seed(42)
 
         # nella GCN la convoluzione è il meccanismo usato per implementare il message passing.
         # (VALUTARE: ChebConv | numero di conv layers da usare | dimensione hidd. layers)
         # self.conv = ChebConv(input_dim, hidden_dim, K=3, normalization="sym")
 
+        torch.manual_seed(42)
         self.conv1 = GCNConv(input_dim, hidden_dim1, normalize=True)     # convolutional layer 1
         self.conv2 = GCNConv(hidden_dim1, hidden_dim2, normalize=True)   # convolutional layer 2
         self.conv3 = GCNConv(hidden_dim2, hidden_dim3, normalize=True)
