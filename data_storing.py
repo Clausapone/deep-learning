@@ -138,10 +138,10 @@ links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
 
 links_embeddings = np.array([])
 X = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
-np.save("large_embeddings.npy", X)
 
 pca = PCA(n_components=20)
 X = pca.fit_transform(X)
+
 np.save("X.npy", X)
 
 
