@@ -7,29 +7,38 @@ import torch
 import numpy as np
 from torch_geometric.utils import from_networkx
 
-# {UTILS}  - File to calculate offline the embeddings of the blog
 
+"""
+Modulo che legge il file .gml, costruisce il grafo, e restituisce: X (tensore per il training),
+Y (colonna outcomes), edge_index (adj_matrix compatta) e edge weight (cardinalità dei pesi)
+"""
 
-# Function which create the embeddings starting from the textual content of the blogs
+# {UTILS}
+#-----------------------------------------------------------------------------------------------------
+
+# Funzione che crei l'embedding del contenuto di un sito web, dato l'url
 def create_embedding(url):
-
-    url = "https://" + url          # https format for the url
-    response = requests.get(url)    # HTTP Request to acquire the information from the corresponding website
-    web_content = response.content  # Pull the resorse from the website
+    # Scaricare il contenuto del sito web usando l'url fronito
+    url = "https://" + url
+    response = requests.get(url)  # richiesta HTTP per ottenere informazioni sul sito web
+    web_content = response.content  # ricavare il contenuto del sito web
 
     # Estrarre il testo rilevante dal contenuto HTML tramite parsing
     soup = BeautifulSoup(web_content, "html.parser")
-    texts = soup.stripped_strings       # delete formatting elements that are not relevant part of the text
-    text_content = " ".join(texts)
+    texts = soup.stripped_strings  # eliminare elementi di formattazione che non fanno parte del testo
+    text_content = " ".join(texts)  # introdurre gli spazi tra le parole
 
-    # BART model istanziation using the pipeline method of the transformers library
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    # ------------------------------------
+    # WEB CONTENT --> RIASSUNTO
 
-    # chunks division to enable the summarization
-    chunks_length = 3000        # optimal chunk dimension
-    chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)] # chunk division of the textual content
+    # Istanziamo il modello summarizer (BART)
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")     # DEVICE
 
-    # array which store in each cell the summarization of the chunks
+    # divisione in chunks
+    chunks_length = 3000
+    chunks = [text_content[i:i + chunks_length] for i in range(0, len(text_content), chunks_length)]
+
+    # array con i riassunti dei chunks
     chunks_summaries = [chunk_error_handler(chunks[i], summarizer) for i in range(len(chunks))]
 
     # riassunto totale dei riassunti dei chunks (se la somma dei riassunti dei chunks supera 3000, viene troncata)
@@ -42,6 +51,9 @@ def create_embedding(url):
         summary = summarizer(total_chunks_truncated, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
     else:
         summary = total_chunks_summary
+
+    # ------------------------------------
+    # RIASSUNTO --> LARGE EMBEDDING
 
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -57,77 +69,79 @@ def create_embedding(url):
 
     return embedding
 
-# Function which identify the correct url which contains the resources
+#-----------------------------------------------------
+# Funzione che identifichi gli url idonei in base allo status code e ad un timeout
 def suitable_url(url):
     try:
         response = requests.head(url, timeout=3)
-        return response.status_code < 300           # filtering the urls which have a HTTP state code less than 300 to ensure the resources are acquired
+        return response.status_code < 300
     except requests.RequestException:
         return False
 
-#------------------------------------------------------------------------------------------------------------
-# function which summarize the chunks content checking the possible errors
+#-----------------------------------------------------
+# (per via di contenuti ambigui, alcuni chunks producono degli Index Errors)
+# Funzione che esegue i riassunti di ogni chunk, gestendo gli errori all'interno dei chunks:
+
 def chunk_error_handler(chunk, summarizer):
     try:
-        if len(chunk) > 1200:             # summarize the chunk only if have this number of characters
+        if len(chunk) > 1200:   # se il chunk è abbastanza grande eseguiamo il riassunto (1200 è un numero ragionevole di caratteri)
             chunk_summary = summarizer(chunk, max_length=250, min_length=150, do_sample=False)[0]['summary_text']
             return chunk_summary
-        else:                             # returns the original chunk
+        else:   # se non è abbastanza grande lo teniamo invariato
             return chunk
-    except IndexError:                # management of the chunks that have special characters which are not possible to summarize
-        return " "                    # putting blank space instead of the chunks to preserve the string structure of the array
+    except IndexError:
+        return " "
 
 
 # {DATA STORING}
 #-----------------------------------------------------------------------------------------------------
 
-# Reading the graph dataset using the networkx library
+# Creazione del grafo leggendo il file .gml del database
 Dataset = nx.read_gml('polblogs.gml', label='id')
 
-# Graph creation using Multigraph type because of the duplicate edges in the dataset
+# Creazione del grafo di tipo MultiDiGraph  per la presenza di archi duplicati
 MG = nx.MultiDiGraph(Dataset)
 
-# Creating an empty Directed Graph in which are allowed directed edges, but not multiple ones
+# Trasformazione del MultiGraph in un semplice DiGraph, ma senza duplicati (con un peso per ogni edge)
 DG = nx.DiGraph()
 
-# filling DG with nodes with suitable url
-for node, data in MG.nodes(data=True):   # loading the nodes
+for node, data in MG.nodes(data=True):  # carico i nodi
     url = "https://" + data['label']
-    if suitable_url(url):                # adding the link only if the is suitable
+    if suitable_url(url):  # aggiungo il nodo solo se il link funziona
         DG.add_node(node, **data)
 
-# filling DG with edges but taking into account cardinality (with weight parameter)
-for source, target, data in MG.edges(data=True):  # loading the edges
-    if DG.has_edge(source, target):          # increasing by one the weight of the edge if duplicated
+for source, target, data in MG.edges(data=True):  # carico gli edges
+    if DG.has_edge(source, target):  # aumento il peso dell'arco se già presente
         DG[source][target]['weight'] += 1
     elif DG.has_node(source) and DG.has_node(
-            target):      # adding edges if and only if the source and the target nodes have been added previously ensuring consistency
+            target):  # creo l'arco se non presente ma solo se i nodi source e target esistono nel DG (potrebbero non esistere poichè eliminiamo i link non funzionanti)
         DG.add_edge(source, target, weight=1)
 
 
-# creating and exporting the edge index matrix as a tensor
+# CREAZIONE ed ESPORTAZIONE della matrice degli indici di adiacenza (tensore)
 data = from_networkx(DG)
 edge_index = data.edge_index
 torch.save(edge_index, 'edge_index.pt')
 
-# creating and exporting the edge weights matrix as a tensor
+# CREAZIONE ed ESPORTAZIONE della matrice dei pesi associati ad edge_index (tensore)
 edge_weight = torch.tensor([DG[source][target]['weight'] for source, target in DG.edges], dtype=torch.float)
 torch.save(edge_weight, 'edge_weight.pt')
 
-# creating and exporting the value of the graph (Y)
+# CREAZIONE ed ESPORTAZIONE  della colonna degli outcomes Y
 Y = np.array([DG.nodes.data()[id]['value'] for id in DG.nodes])
 np.save("Y.npy", Y)
 
-# collecting the links to create the embeddings
+# CREAZIONE ed ESPORTAZIONE della matrice degli inputs X ridotta tramite PCA (LARGE EMBEDDING --> FINAL SHORT EMBEDDING)
+
+# Estrazione dei links dei siti web dal database per ottenere gli embeddings del loro contenuto
 links = [DG.nodes.data()[id]['label'] for id in DG.nodes]
 
 links_embeddings = np.array([])
 X = np.array([np.append(links_embeddings, create_embedding(l)) for l in links])
 
-# reducing the embedding matrix using the PCA
 pca = PCA(n_components=20)
 X = pca.fit_transform(X)
 
-# saving the embedding matrix
 np.save("X.npy", X)
+
 

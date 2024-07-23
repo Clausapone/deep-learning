@@ -6,7 +6,7 @@ import torch.nn.functional as F
 torch.manual_seed(42)
 
 #----------------------------------------------------------------------------------------------
-# GCN_Conv ---> GCNConv AS CONVOLUTIONAL LAYER, ReLU AS ACTIVATION FUNCTION
+# {GCN_Conv} ---> GCNConv AS CONVOLUTIONAL LAYER, ReLU AS ACTIVATION FUNCTION
 class GCN_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GCN_Conv, self).__init__()
@@ -37,7 +37,7 @@ class GCN_Conv(torch.nn.Module):
 
 
 #----------------------------------------------------------------------------------------------
-# Cheb_Conv ---> ChebConv AS CONVOLUTIONAL LAYER, Leaky_ReLU AS ACTIVATION FUNCTION
+# {Cheb_Conv} ---> ChebConv AS CONVOLUTIONAL LAYER, Leaky_ReLU AS ACTIVATION FUNCTION
 class Cheb_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(Cheb_Conv, self).__init__()
@@ -67,7 +67,7 @@ class Cheb_Conv(torch.nn.Module):
 
 
 #----------------------------------------------------------------------------------------------
-# GAT_Conv ---> GATConv AS CONVOLUTIONAL LAYER, ELU AS ACTIVATION FUNCTION
+# {GAT_Conv} ---> GATConv AS CONVOLUTIONAL LAYER, ELU AS ACTIVATION FUNCTION
 class GAT_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GAT_Conv, self).__init__()
