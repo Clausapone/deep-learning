@@ -1,16 +1,20 @@
 import torch
 from torch import optim
 from torch.nn import BCELoss
-from model import GCN
+from models import GCN_Conv, Cheb_Conv, GAT_Conv
 from train import train
 from test import test
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import train_test_split, KFold
 import numpy as np
 from itertools import product
+from metrics_plot import show_confusion_matrix, show_loss_history, show_metrics
 
 
-# DATA LOADING
+# DEVICE  :   if torch.cuda.is_available()
+
+
+# {DATA LOADING}
 # loading training data produced in data_storing.
 
 Y = np.load("Y.npy")
@@ -18,21 +22,21 @@ X = np.load("X.npy")
 edge_index = torch.load("edge_index.pt")
 edge_weight = torch.load("edge_weight.pt")
 
-#-----------------------------------------------------
-# TRAIN AND TEST MASKS
+
+# {TRAIN AND TEST MASKS}
 # creating masks in order to split the dataset in training set and test set.
 
 train_mask, test_mask = train_test_split(np.arange(X.shape[0]), test_size=0.2, random_state=42, shuffle=True)
 
-#-----------------------------------------------------
-# NORMALIZATION
+
+# {NORMALIZATION}
 # input scaling by using the median and the interquartile range (IQR): less influenced by  outliers compared to standard scaler.
 
 scaler = RobustScaler()
 X = scaler.fit_transform(X)
 
-#-----------------------------------------------------
-# CROSS VALIDATION
+
+# {CROSS VALIDATION}
 # searching and training the best model between all possible models iterating over hyperparameters.
 
 # setting loss criterion: Binary Cross Entropy loss for our binary classification task.
@@ -42,13 +46,14 @@ X = torch.tensor(X, dtype=torch.float)
 Y = torch.tensor(Y, dtype=torch.float)
 
 # dictionary with all hyperparameters we will test in the validation phase.
-params_grid = {'lr': [0.001, 0.0001], 'wd': [5e-4, 5e-5], 'hidden_dim1': [34, 32], 'hidden_dim2': [10, 8], 'hidden_dim3': [3, 2]}
+#params_grid = {'lr': [0.001, 0.0001], 'wd': [5e-4, 5e-5], 'hidden_dim1': [34, 32], 'hidden_dim2': [10, 8], 'hidden_dim3': [3, 2]}
+params_grid = {'lr': [0.001], 'wd': [5e-5], 'hidden_dim1': [32], 'hidden_dim2': [10], 'hidden_dim3': [3]}
 
 # generating all possible combinations of parameters.
 combinations = product(params_grid['lr'], params_grid['wd'], params_grid['hidden_dim1'], params_grid['hidden_dim2'], params_grid['hidden_dim3'])
 
 # instantiating an empty dictionary: for a specific index i, each parameter-array, will contain the value of that hyperparameter
-# for the i-th combination (and the associated Score), then we store also the i-th trained model.
+# for the i-th combination (and the associated SCORE), then we store also the i-th trained model.
 params_scores = {'lr': [], 'wd': [], 'hidden_dim1': [], 'hidden_dim2': [], 'hidden_dim3': [], 'model': [], 'score': []}
 
 # instantiating a function in order to compute indices for train and validation sets for K-fold cross validation
@@ -56,19 +61,19 @@ kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
 # iterating over hyperparameters
 for lr, wd, hd1, hd2, hd3 in combinations:
-    model = GCN(X.shape[1], hidden_dim1=hd1, hidden_dim2=hd2, hidden_dim3=hd3)      # instantiating the model with current combination of hyperparams
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)      # instantiating the optimizer with current combination of hyperparams
+    model = GCN_Conv(X.shape[1], hidden_dim1=hd1, hidden_dim2=hd2, hidden_dim3=hd3)      # instantiating the model with current combination of hyperparams
+    optimizer = optim.Adagrad(model.parameters(), lr=lr, weight_decay=wd)      # instantiating the optimizer with current combination of hyperparams
 
-    score = np.array([])    # instantiating the array with the scores of each fold
+    score = np.array([])    # instantiating the array with the scores of each fold for the single params combination
 
     # iterating over folds
     for fold, (train_mask1, val_mask) in enumerate(kf.split(X[train_mask])):
 
         # training for i-th fold
-        train(model, X, Y, edge_index, edge_weight, train_mask1, optimizer, criterion, 1000)
+        _ = train(model, X, Y, edge_index, edge_weight, train_mask1, optimizer, criterion, 1000)
 
         # validation for i-th fold
-        _, val_accuracy, _, _ = test(model, X, Y, edge_index, edge_weight, val_mask, criterion)
+        _, val_accuracy, _, _, _, _ = test(model, X, Y, edge_index, edge_weight, val_mask, criterion)
 
         score = np.append(score, val_accuracy)      # accumulator for scores of each fold (validation set accuracy)
 
@@ -89,19 +94,23 @@ best_params = {'lr': params_scores['lr'][i], 'wd': params_scores['wd'][i], 'hidd
                'hidden_dim2': params_scores['hidden_dim2'][i], 'hidden_dim3': params_scores['hidden_dim3'][i]}
 
 # instantiating best model and best optimizer
-best_model = GCN(X.shape[1], hidden_dim1=best_params['hidden_dim1'], hidden_dim2=best_params['hidden_dim2'], hidden_dim3=best_params['hidden_dim3'])
-best_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['wd'])
+best_model = GCN_Conv(X.shape[1], hidden_dim1=best_params['hidden_dim1'], hidden_dim2=best_params['hidden_dim2'], hidden_dim3=best_params['hidden_dim3'])
+best_optimizer = optim.RMSprop(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['wd'])
 
-#--------------------------------------------------------------
-# TRAINING
+
+# {TRAINING}
 # final training with best_model and best_optimizer
 
-train(best_model, X, Y, edge_index, edge_weight, train_mask, best_optimizer, criterion, 1000)
+loss_history = train(best_model, X, Y, edge_index, edge_weight, train_mask, best_optimizer, criterion, 1000)
 
-#-----------------------------------------------------
-# EVALUATION
+
+# {EVALUATION}
 # testing the model and finally evaluating the metrics
 
-test_loss, test_accuracy, test_precision, test_recall = test(best_model, X, Y, edge_index, edge_weight, test_mask, criterion)
+test_loss, test_accuracy, test_precision, test_recall, test_f1_s, conf_mat = test(best_model, X, Y, edge_index, edge_weight, test_mask, criterion)
 
-print(f"test loss: {test_loss}, accuracy: {test_accuracy}, precision: {test_precision}, recall: {test_recall}")
+# graphical plotting of different metrics
+show_confusion_matrix(conf_mat)
+show_loss_history(loss_history)
+show_metrics(test_accuracy, test_precision, test_recall, test_f1_s)
+
