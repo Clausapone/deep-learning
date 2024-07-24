@@ -10,17 +10,15 @@ import numpy as np
 from itertools import product
 from metrics_plot import show_confusion_matrix, show_loss_history, show_metrics
 
-
-# DEVICE  :   if torch.cuda.is_available()
-
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # {DATA LOADING}
 # loading training data produced in data_storing.
 
 Y = np.load("Y.npy")
 X = np.load("X.npy")
-edge_index = torch.load("edge_index.pt")
-edge_weight = torch.load("edge_weight.pt")
+edge_index = torch.load("edge_index.pt").to(device)
+edge_weight = torch.load("edge_weight.pt").to(device)
 
 
 # {TRAIN AND TEST MASKS}
@@ -42,12 +40,11 @@ X = scaler.fit_transform(X)
 # setting loss criterion: Binary Cross Entropy loss for our binary classification task.
 criterion = BCELoss()
 
-X = torch.tensor(X, dtype=torch.float)
-Y = torch.tensor(Y, dtype=torch.float)
+X = torch.tensor(X, dtype=torch.float).to(device)
+Y = torch.tensor(Y, dtype=torch.float).to(device)
 
 # dictionary with all hyperparameters we will test in the validation phase.
-#params_grid = {'lr': [0.001, 0.0001], 'wd': [5e-4, 5e-5], 'hidden_dim1': [34, 32], 'hidden_dim2': [10, 8], 'hidden_dim3': [3, 2]}
-params_grid = {'lr': [0.001], 'wd': [5e-5], 'hidden_dim1': [32], 'hidden_dim2': [10], 'hidden_dim3': [3]}
+params_grid = {'lr': [0.001, 0.0001], 'wd': [5e-4, 5e-5], 'hidden_dim1': [38, 32], 'hidden_dim2': [14, 10], 'hidden_dim3': [3, 2]}
 
 # generating all possible combinations of parameters.
 combinations = product(params_grid['lr'], params_grid['wd'], params_grid['hidden_dim1'], params_grid['hidden_dim2'], params_grid['hidden_dim3'])
@@ -113,4 +110,3 @@ test_loss, test_accuracy, test_precision, test_recall, test_f1_s, conf_mat = tes
 show_confusion_matrix(conf_mat)
 show_loss_history(loss_history)
 show_metrics(test_accuracy, test_precision, test_recall, test_f1_s)
-
