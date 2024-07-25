@@ -7,7 +7,7 @@ torch.manual_seed(42)
 
 # {GCN_Conv}
 # GCNConv AS CONVOLUTIONAL LAYER, ReLU AS ACTIVATION FUNCTION
-# (we used standard normalization)
+# (dropout with p=0.2 to decrease overfitting, standard normalization)
 class GCN_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GCN_Conv, self).__init__()
@@ -20,15 +20,15 @@ class GCN_Conv(torch.nn.Module):
 
     # forward propagation using 3 convolutional layers
     def forward(self, X, edge_index, edge_weight):
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv1(X, edge_index, edge_weight)
         X = self.relu(X)
 
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.relu(X)
 
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.relu(X)
 
@@ -40,7 +40,7 @@ class GCN_Conv(torch.nn.Module):
 
 # {Cheb_Conv}
 # ChebConv AS CONVOLUTIONAL LAYER, Leaky_ReLU AS ACTIVATION FUNCTION
-# (we used the polynomial degree K=3 and the symmetric normalization)
+# (dropout with p=0.2 to decrease overfitting, polynomial degree K=3 and symmetric normalization)
 class Cheb_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(Cheb_Conv, self).__init__()
@@ -52,15 +52,15 @@ class Cheb_Conv(torch.nn.Module):
         self.leaky_relu = LeakyReLU()                                                   # Leaky_ReLU as activation function
 
     def forward(self, X, edge_index, edge_weight):
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv1(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
-        X = F.dropout(X, p=0.2)
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
@@ -72,24 +72,27 @@ class Cheb_Conv(torch.nn.Module):
 
 # {GAT_Conv}
 # GATConv AS CONVOLUTIONAL LAYER, ELU AS ACTIVATION FUNCTION
-# (we used a dropout with p=0.2 to decrease overfitting and 1 attention head as default)
+# (dropout with p=0.2 to decrease overfitting and 1 attention head as default)
 class GAT_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GAT_Conv, self).__init__()
-        self.conv1 = GATConv(input_dim, hidden_dim1, dropout=0.2)             # convolutional layer 1
-        self.conv2 = GATConv(hidden_dim1, hidden_dim2, dropout=0.2)           # convolutional layer 2
-        self.conv3 = GATConv(hidden_dim2, hidden_dim3, dropout=0.2)           # convolutional layer 3
+        self.conv1 = GATConv(input_dim, hidden_dim1)             # convolutional layer 1
+        self.conv2 = GATConv(hidden_dim1, hidden_dim2)           # convolutional layer 2
+        self.conv3 = GATConv(hidden_dim2, hidden_dim3)           # convolutional layer 3
         self.linear = Linear(hidden_dim3, 1)                       # linear layer
         self.sigmoid = Sigmoid()                                              # result in terms of probability
         self.elu = ELU()                                                      # ELU as activation function
 
     def forward(self, X, edge_index, edge_weight):
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv1(X, edge_index, edge_weight)
         X = self.elu(X)
 
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.elu(X)
 
+        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.elu(X)
 

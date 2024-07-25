@@ -59,7 +59,7 @@ kf = KFold(n_splits=5, shuffle=True, random_state=42)
 # iterating over hyperparameters
 for lr, wd, hd1, hd2, hd3 in combinations:
     model = GCN_Conv(X.shape[1], hidden_dim1=hd1, hidden_dim2=hd2, hidden_dim3=hd3)      # instantiating the model with current combination of hyperparams
-    optimizer = optim.Adagrad(model.parameters(), lr=lr, weight_decay=wd)      # instantiating the optimizer with current combination of hyperparams
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)      # instantiating the optimizer with current combination of hyperparams
 
     score = np.array([])    # instantiating the array with the scores of each fold for the single params combination
 
@@ -92,7 +92,7 @@ best_params = {'lr': params_scores['lr'][i], 'wd': params_scores['wd'][i], 'hidd
 
 # instantiating best model and best optimizer
 best_model = GCN_Conv(X.shape[1], hidden_dim1=best_params['hidden_dim1'], hidden_dim2=best_params['hidden_dim2'], hidden_dim3=best_params['hidden_dim3'])
-best_optimizer = optim.RMSprop(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['wd'])
+best_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['wd'])
 
 
 # {TRAINING}
