@@ -66,16 +66,16 @@ class Cheb_Conv(torch.nn.Module):
 
 # {GAT_Conv}
 # GATConv AS CONVOLUTIONAL LAYER, ELU AS ACTIVATION FUNCTION
-# (we used 2 attention heads and a dropout with p=0.2 to decrease overfitting)
+# (we used a dropout with p=0.2 to decrease overfitting and 1 attention head as default)
 class GAT_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GAT_Conv, self).__init__()
-        self.conv1 = GATConv(input_dim, hidden_dim1, dropout=0.2, heads=2)             # convolutional layer 1
-        self.conv2 = GATConv(hidden_dim1, hidden_dim2, dropout=0.2, heads=2)           # convolutional layer 2
-        self.conv3 = GATConv(hidden_dim2, hidden_dim3, dropout=0.2, heads=2)           # convolutional layer 3
-        self.linear = Linear(hidden_dim3, 1)                                # linear layer
-        self.sigmoid = Sigmoid()                                                       # result in terms of probability
-        self.elu = ELU()                                                               # ELU as activation function
+        self.conv1 = GATConv(input_dim, hidden_dim1, dropout=0.2)             # convolutional layer 1
+        self.conv2 = GATConv(hidden_dim1, hidden_dim2, dropout=0.2)           # convolutional layer 2
+        self.conv3 = GATConv(hidden_dim2, hidden_dim3, dropout=0.2)           # convolutional layer 3
+        self.linear = Linear(hidden_dim3, 1)                       # linear layer
+        self.sigmoid = Sigmoid()                                              # result in terms of probability
+        self.elu = ELU()                                                      # ELU as activation function
 
     def forward(self, X, edge_index, edge_weight):
         X = self.conv1(X, edge_index, edge_weight)
