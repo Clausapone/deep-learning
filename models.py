@@ -20,12 +20,15 @@ class GCN_Conv(torch.nn.Module):
 
     # forward propagation using 3 convolutional layers
     def forward(self, X, edge_index, edge_weight):
+        X = F.dropout(X, p=0.2)
         X = self.conv1(X, edge_index, edge_weight)
         X = self.relu(X)
 
+        X = F.dropout(X, p=0.2)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.relu(X)
 
+        X = F.dropout(X, p=0.2)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.relu(X)
 
@@ -49,12 +52,15 @@ class Cheb_Conv(torch.nn.Module):
         self.leaky_relu = LeakyReLU()                                                   # Leaky_ReLU as activation function
 
     def forward(self, X, edge_index, edge_weight):
+        X = F.dropout(X, p=0.2)
         X = self.conv1(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
+        X = F.dropout(X, p=0.2)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
+        X = F.dropout(X, p=0.2)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
