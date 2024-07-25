@@ -7,6 +7,7 @@ torch.manual_seed(42)
 
 # {GCN_Conv}
 # GCNConv AS CONVOLUTIONAL LAYER, ReLU AS ACTIVATION FUNCTION
+# (we used standard normalization)
 class GCN_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GCN_Conv, self).__init__()
@@ -22,11 +23,9 @@ class GCN_Conv(torch.nn.Module):
         X = self.conv1(X, edge_index, edge_weight)
         X = self.relu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.relu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.relu(X)
 
@@ -38,6 +37,7 @@ class GCN_Conv(torch.nn.Module):
 
 # {Cheb_Conv}
 # ChebConv AS CONVOLUTIONAL LAYER, Leaky_ReLU AS ACTIVATION FUNCTION
+# (we used the polynomial degree K=3 and the symmetric normalization)
 class Cheb_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(Cheb_Conv, self).__init__()
@@ -52,11 +52,9 @@ class Cheb_Conv(torch.nn.Module):
         X = self.conv1(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.leaky_relu(X)
 
@@ -68,12 +66,13 @@ class Cheb_Conv(torch.nn.Module):
 
 # {GAT_Conv}
 # GATConv AS CONVOLUTIONAL LAYER, ELU AS ACTIVATION FUNCTION
+# (we used 2 attention heads and a dropout with p=0.2 to decrease overfitting)
 class GAT_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GAT_Conv, self).__init__()
-        self.conv1 = GATConv(input_dim, hidden_dim1, K=3, normalization="sym")         # convolutional layer 1
-        self.conv2 = GATConv(hidden_dim1, hidden_dim2, K=3, normalization="sym")       # convolutional layer 2
-        self.conv3 = GATConv(hidden_dim2, hidden_dim3, K=3, normalization="sym")       # convolutional layer 3
+        self.conv1 = GATConv(input_dim, hidden_dim1, dropout=0.2, heads=2)             # convolutional layer 1
+        self.conv2 = GATConv(hidden_dim1, hidden_dim2, dropout=0.2, heads=2)           # convolutional layer 2
+        self.conv3 = GATConv(hidden_dim2, hidden_dim3, dropout=0.2, heads=2)           # convolutional layer 3
         self.linear = Linear(hidden_dim3, 1)                                # linear layer
         self.sigmoid = Sigmoid()                                                       # result in terms of probability
         self.elu = ELU()                                                               # ELU as activation function
@@ -82,11 +81,9 @@ class GAT_Conv(torch.nn.Module):
         X = self.conv1(X, edge_index, edge_weight)
         X = self.elu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv2(X, edge_index, edge_weight)
         X = self.elu(X)
 
-        X = F.dropout(X, p=0.2, training=self.training)
         X = self.conv3(X, edge_index, edge_weight)
         X = self.elu(X)
 
