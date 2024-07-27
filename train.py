@@ -1,5 +1,6 @@
 import numpy as np
 
+
 # {TRAINING FUNCTION}
 # training the model over epochs storing also the loss_history
 # (forwarding over the whole dataset and computing the loss over the training set)

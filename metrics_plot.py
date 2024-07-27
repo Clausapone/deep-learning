@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-# function which shows a graphical plot of the confusion matrix
+
+# function to visualize the confusion matrix
 def show_confusion_matrix(conf_mat):
     conf_mat = np.array(conf_mat)
 
@@ -13,7 +14,8 @@ def show_confusion_matrix(conf_mat):
     plt.ylabel('True')
     plt.show()
 
-# function which shows a graphical plot of the training loss over epochs
+
+# function to visualize training loss over epochs
 def show_loss_history(loss_history):
     plt.figure(figsize=(8, 6))
     plt.title('LOSS HISTORY')
@@ -22,7 +24,8 @@ def show_loss_history(loss_history):
     plt.plot(loss_history)
     plt.show()
 
-# function which shows metrics values
+
+# function to visualize metrics values
 def show_metrics(accuracy, precision, recall, f1_score):
     plt.figure(figsize=(8, 4))
     _, ax = plt.subplots()

@@ -7,7 +7,8 @@ import torch
 import numpy as np
 from torch_geometric.utils import from_networkx
 
-# FILE TO CALCULATE THE EMBEDDINGS OF THE BLOGS
+# FILE TO CALCULATE BLOGS EMBEDDINGS
+
 
 # {UTILS FUNCTIONS}
 # Function which create the embeddings starting from the textual content of the blogs
@@ -20,7 +21,6 @@ def create_embedding(url):
     soup = BeautifulSoup(web_content, "html.parser")    # Extracting the text content from the HTML content using BeautifulSoup parser
     texts = soup.stripped_strings       # deleting not relevant formatting elements of the text
     text_content = " ".join(texts)      # spaces between words
-
 
     # BART-LARGE model istanziation using the pipeline method of the transformers library to ensure summarization
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")

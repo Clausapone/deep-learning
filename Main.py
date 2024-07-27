@@ -14,7 +14,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # {DATA LOADING}
 # loading training data produced in data_storing.
-
 Y = np.load("Y.npy")
 X = np.load("X.npy")
 edge_index = torch.load("edge_index.pt").to(device)
@@ -23,13 +22,11 @@ edge_weight = torch.load("edge_weight.pt").to(device)
 
 # {TRAIN AND TEST MASKS}
 # creating masks in order to split the dataset in training set and test set.
-
 train_mask, test_mask = train_test_split(np.arange(X.shape[0]), test_size=0.2, random_state=42, shuffle=True)
 
 
 # {NORMALIZATION}
 # input scaling by using the median and the interquartile range (IQR): less influenced by  outliers compared to standard scaler.
-
 scaler = RobustScaler()
 X = scaler.fit_transform(X)
 
@@ -97,16 +94,14 @@ best_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'], weigh
 
 # {TRAINING}
 # final training with best_model and best_optimizer
-
 loss_history = train(best_model, X, Y, edge_index, edge_weight, train_mask, best_optimizer, criterion, 1000)
 
 
 # {EVALUATION}
 # testing the model and finally evaluating the metrics
-
 test_loss, test_accuracy, test_precision, test_recall, test_f1_s, conf_mat = test(best_model, X, Y, edge_index, edge_weight, test_mask, criterion)
 
-# graphical plotting of different metrics
+# graphical visualization of different metrics
 show_confusion_matrix(conf_mat)
 show_loss_history(loss_history)
 show_metrics(test_accuracy, test_precision, test_recall, test_f1_s)

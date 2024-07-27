@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 torch.manual_seed(42)
 
+
 # {GCN_Conv}
 # GCNConv AS CONVOLUTIONAL LAYER, ReLU AS ACTIVATION FUNCTION
 # (dropout with p=0.2 to decrease overfitting, standard normalization)
@@ -76,9 +77,9 @@ class Cheb_Conv(torch.nn.Module):
 class GAT_Conv(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, hidden_dim3):
         super(GAT_Conv, self).__init__()
-        self.conv1 = GATConv(input_dim, hidden_dim1)             # convolutional layer 1
-        self.conv2 = GATConv(hidden_dim1, hidden_dim2)           # convolutional layer 2
-        self.conv3 = GATConv(hidden_dim2, hidden_dim3)           # convolutional layer 3
+        self.conv1 = GATConv(input_dim, hidden_dim1)                          # convolutional layer 1
+        self.conv2 = GATConv(hidden_dim1, hidden_dim2)                        # convolutional layer 2
+        self.conv3 = GATConv(hidden_dim2, hidden_dim3)                        # convolutional layer 3
         self.linear = Linear(hidden_dim3, 1)                       # linear layer
         self.sigmoid = Sigmoid()                                              # result in terms of probability
         self.elu = ELU()                                                      # ELU as activation function
