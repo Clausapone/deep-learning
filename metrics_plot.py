@@ -27,7 +27,6 @@ def show_loss_history(loss_history):
 
 # function to visualize metrics values
 def show_metrics(accuracy, precision, recall, f1_score):
-    plt.figure(figsize=(8, 4))
     _, ax = plt.subplots()
     text = (f"Accuracy: {100 * accuracy:.2f} %"
             f"\n\nPrecision: {100 * precision:.2f}%"
